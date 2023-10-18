@@ -1,5 +1,5 @@
 {
-    "name": "async-bridge",
+    "name": "@ikhilko/async-bridge",
     "version": "1.1.0",
     "description": "Two-way communication between two JS environments",
     "main": "dist/index.js",
