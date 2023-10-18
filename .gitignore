@@ -1,0 +1,5 @@
+node_modules
+.idea
+
+src/index.js
+src/index.js.map
