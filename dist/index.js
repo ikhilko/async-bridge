@@ -1,14 +1,8 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 var uuid = require('uuid-random');
 
-function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
-
-var uuid__default = /*#__PURE__*/_interopDefaultLegacy(uuid);
-
-/*! *****************************************************************************
+/******************************************************************************
 Copyright (c) Microsoft Corporation.
 
 Permission to use, copy, modify, and/or distribute this software for any
@@ -22,6 +16,8 @@ LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
 OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
+/* global Reflect, Promise, SuppressedError, Symbol */
+
 
 function __awaiter(thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -32,6 +28,11 @@ function __awaiter(thisArg, _arguments, P, generator) {
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 }
+
+typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
 
 var version = "1.1.0";
 
@@ -76,7 +77,7 @@ const createBridge = (options, middlewares) => {
     let eventListeners = {};
     const listenEvent = (type, handler) => {
         var _a;
-        const eventListenerId = uuid__default['default']();
+        const eventListenerId = uuid();
         eventListeners[type] = (_a = eventListeners[type]) !== null && _a !== void 0 ? _a : {};
         eventListeners[type][eventListenerId] = handler;
         return () => {
@@ -161,13 +162,13 @@ const createBridge = (options, middlewares) => {
     const localRequestDispatch = ((action) => {
         var _a;
         const { type, payload = {} } = action;
-        const id = uuid__default['default']();
+        const id = uuid();
         const meta = Object.assign(Object.assign({}, ((_a = action.meta) !== null && _a !== void 0 ? _a : {})), { external: false, type: ActionMetaType.REQUEST });
         return wrappedDispatch({ id, type, payload, meta });
     });
     const localResponseDispatch = ((action) => {
         const { type, payload = {}, meta = {} } = action;
-        const id = uuid__default['default']();
+        const id = uuid();
         return wrappedDispatch({
             id,
             type,
