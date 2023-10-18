@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "module": "dist/index.esm.js",
     "types": "dist/src/index.d.ts",
-    "repository": "git@github.com:Wayside-Publishing/async-bridge.git",
+    "repository": "git@github.com:ikhilko/async-bridge.git",
     "author": "Ivan Khilko <ikhilko.dev@gmail.com>",
     "license": "MIT",
     "scripts": {
