@@ -1,281 +1,197 @@
-'use strict';
-
-var uuid = require('uuid-random');
-
-/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
-
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
+import S from "uuid-random";
+const z = "1.2.0";
+function G(...s) {
+  return s.length === 0 ? (n) => n : (s = s.filter((n) => typeof n == "function"), s.length === 1 ? s[0] : s.reduce(
+    (n, r) => (...i) => n(r(...i))
+  ));
+}
+const M = /* @__PURE__ */ (() => {
+  const s = "[webview-bridge]";
+  return {
+    log: (...n) => console.log(s, ...n),
+    warn: (...n) => console.warn(s, ...n),
+    error: (...n) => console.error(s, ...n)
+  };
+})(), I = (s) => {
+  M.error(
+    `Cannot make a response. To be able to response to action '${s.type}' please dispatch it using 'dispatchAsync' bridge method.`
+  );
+}, J = (s, n) => M.warn(
+  `Cannot dispatch action '${n.type}. 'Please provide post message implementation calling 'bridge.setPostMessage' first.`
+), P = "@@INTERNAL_SYNC_MESSAGE", $ = (s, n) => {
+  let r = (s == null ? void 0 : s.postMessage) ?? J, i = [];
+  const h = (e) => (i.push(e), () => {
+    i = i.filter((t) => t !== e);
+  });
+  let c = {};
+  const u = (e, t) => {
+    const a = S();
+    return c[e] = c[e] ?? {}, c[e][a] = t, () => {
+      delete c[e][a];
+    };
+  }, f = (e) => {
+    const { meta: t, type: a } = e;
+    if (!t.external)
+      try {
+        const o = JSON.stringify(e);
+        r(o, e);
+      } catch (o) {
+        throw o;
+      }
+    if (t.type === "request" && t.external && c[a]) {
+      let o = !1;
+      const g = (d) => {
+        const { type: w = e.type, payload: v, meta: E } = d ?? {};
+        if (o) {
+          M.warn("You're trying to resolve async request that is already done.");
+          return;
+        }
+        o = !0, x({
+          type: w,
+          payload: v,
+          meta: {
+            ...E,
+            id: e.id
+          }
+        });
+      }, B = (d) => {
+        if (o) {
+          M.warn("You're trying to reject async request that is already done.");
+          return;
+        }
+        o = !0;
+        const w = d instanceof Error, v = typeof d == "string", E = !(w || v || !d), { type: O, payload: T, meta: _ = {} } = E ? d : {};
+        let b;
+        switch (!0) {
+          case w:
+            b = {
+              message: d.toString()
+            };
+            break;
+          case v:
+            b = {
+              message: d
+            };
+            break;
+          default:
+            b = T;
+        }
+        x({
+          type: O ?? e.type,
+          payload: b,
+          meta: { ..._, id: e.id, error: !0 }
+        });
+      }, N = () => I(e), L = t.async ? g : N, Y = t.async ? B : N;
+      Object.values(c[a]).forEach((d) => d(e, L, Y));
+    }
+  };
+  let l = {};
+  const A = [() => (e) => (t) => (i.forEach((a) => {
+    a(t);
+  }), e(t)), ...n].map((e) => e(l)), m = G(...A)(f), y = (e) => {
+    const { type: t, payload: a = {} } = e, o = S(), g = {
+      ...e.meta ?? {},
+      external: !1,
+      type: "request"
+      /* REQUEST */
+    };
+    return m({ id: o, type: t, payload: a, meta: g });
+  }, x = (e) => {
+    const { type: t, payload: a = {}, meta: o = {} } = e, g = S();
+    return m({
+      id: g,
+      type: t,
+      payload: a,
+      meta: {
+        ...o,
+        external: !1,
+        type: "response"
+        /* RESPONSE */
+      }
     });
-}
-
-typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};
-
-var version = "1.1.0";
-
-var ActionMetaType;
-(function (ActionMetaType) {
-    ActionMetaType["REQUEST"] = "request";
-    ActionMetaType["RESPONSE"] = "response";
-})(ActionMetaType || (ActionMetaType = {}));
-function compose(...funcs) {
-    if (funcs.length === 0) {
-        return (arg) => arg;
+  }, q = (e) => y({
+    ...e,
+    meta: { ...e.meta ?? {}, async: !0 }
+  }), C = (e) => m({
+    ...e,
+    meta: {
+      ...e.meta ?? {},
+      external: !0
     }
-    funcs = funcs.filter((func) => typeof func === 'function');
-    if (funcs.length === 1) {
-        return funcs[0];
+  }), D = (e) => {
+    try {
+      const t = typeof e == "string" ? JSON.parse(e) : e;
+      C(t);
+    } catch (t) {
+      throw t;
     }
-    return funcs.reduce((a, b) => (...args) => a(b(...args)));
-}
-const Logger = (() => {
-    const prefix = '[webview-bridge]';
+  }, k = (e) => {
+    r = e;
+  }, j = async (e = 5e3) => {
+    const t = await Promise.race([
+      (async () => {
+        const { version: a } = await l.dispatchAsync({
+          type: P,
+          payload: { version: l.version }
+        });
+        return a;
+      })(),
+      new Promise((a) => {
+        setTimeout(() => a(!1), e);
+      })
+    ]);
+    if (t === !1)
+      throw new Error(
+        "Error: AsyncBridge.sync timeout. AsyncBridge was not able to receive response from the other side."
+      );
     return {
-        log: (...args) => console.log(prefix, ...args),
-        warn: (...args) => console.warn(prefix, ...args),
-        error: (...args) => console.error(prefix, ...args),
+      version: l.version,
+      otherSideVersion: t
     };
-})();
-const warnNoAsyncMessageResponse = (action) => {
-    Logger.error(`Cannot make a response. To be able to response to action '${action.type}' please dispatch it using 'dispatchAsync' bridge method.`);
+  };
+  return u(P, ({ payload: e }, t) => {
+    t({ payload: { version: l.version } });
+  }), l = {
+    version: z,
+    sync: j,
+    dispatch: y,
+    dispatchAsync: q,
+    setPostMessage: k,
+    subscribe: h,
+    onMessage: D,
+    listenEvent: u
+  }, l;
+}, U = () => {
+  const s = {};
+  return (n) => (r) => {
+    var i, h, c, u, f, l;
+    if ((i = r == null ? void 0 : r.meta) != null && i.async && ((h = r == null ? void 0 : r.meta) == null ? void 0 : h.type) === "request" && !((c = r == null ? void 0 : r.meta) != null && c.external)) {
+      const p = r == null ? void 0 : r.id;
+      return new Promise((A, m) => {
+        s[p] = {
+          resolve: (y) => {
+            A(y), delete s[p];
+          },
+          reject: (y) => {
+            m(y), delete s[p];
+          }
+        }, n(r);
+      });
+    } else if (((u = r == null ? void 0 : r.meta) == null ? void 0 : u.type) === "response" && ((f = r == null ? void 0 : r.meta) != null && f.external)) {
+      const p = (l = r == null ? void 0 : r.meta) == null ? void 0 : l.id;
+      if (s[p])
+        r.meta.error ? s[p].reject(r.payload) : s[p].resolve(r.payload);
+      else
+        return n(r);
+    } else
+      return n(r);
+  };
 };
-const warnNoPostMessageProvided = (message, action) => Logger.warn(`Cannot dispatch action '${action.type}. 'Please provide post message implementation calling 'bridge.setPostMessage' first.`);
-const SYNC_MESSAGE = '@@INTERNAL_SYNC_MESSAGE';
-const createBridge = (options, middlewares) => {
-    var _a;
-    let postMessage = (_a = options === null || options === void 0 ? void 0 : options.postMessage) !== null && _a !== void 0 ? _a : warnNoPostMessageProvided;
-    let listeners = [];
-    const subscribe = (listener) => {
-        listeners.push(listener);
-        return () => {
-            listeners = listeners.filter((current) => current !== listener);
-        };
-    };
-    let eventListeners = {};
-    const listenEvent = (type, handler) => {
-        var _a;
-        const eventListenerId = uuid();
-        eventListeners[type] = (_a = eventListeners[type]) !== null && _a !== void 0 ? _a : {};
-        eventListeners[type][eventListenerId] = handler;
-        return () => {
-            delete eventListeners[type][eventListenerId];
-        };
-    };
-    const internalDispatch = (action) => {
-        const { meta, type } = action;
-        if (!meta.external) {
-            try {
-                const serializedMessage = JSON.stringify(action);
-                postMessage(serializedMessage, action);
-            }
-            catch (e) {
-                throw e;
-            }
-        }
-        if (meta.type === ActionMetaType.REQUEST && meta.external) {
-            if (eventListeners[type]) {
-                let resolved = false;
-                const done = ((responseAction) => {
-                    const { type = action.type, payload, meta } = responseAction !== null && responseAction !== void 0 ? responseAction : {};
-                    if (resolved) {
-                        Logger.warn(`You're trying to resolve async request that is already done.`);
-                        return;
-                    }
-                    resolved = true;
-                    localResponseDispatch({
-                        type,
-                        payload,
-                        meta: Object.assign(Object.assign({}, meta), { id: action.id }),
-                    });
-                });
-                const error = ((errorResponse) => {
-                    if (resolved) {
-                        Logger.warn(`You're trying to reject async request that is already done.`);
-                        return;
-                    }
-                    resolved = true;
-                    const isError = errorResponse instanceof Error;
-                    const isString = typeof errorResponse === 'string';
-                    const isAction = !(isError || isString || !errorResponse);
-                    const { type, payload, meta = {} } = (isAction ? errorResponse : {});
-                    let serializedError;
-                    switch (true) {
-                        case isError:
-                            serializedError = {
-                                message: errorResponse.toString(),
-                            };
-                            break;
-                        case isString:
-                            serializedError = {
-                                message: errorResponse,
-                            };
-                            break;
-                        default:
-                            serializedError = payload;
-                    }
-                    localResponseDispatch({
-                        type: type !== null && type !== void 0 ? type : action.type,
-                        payload: serializedError,
-                        meta: Object.assign(Object.assign({}, meta), { id: action.id, error: true }),
-                    });
-                });
-                const warnArgumentUsage = () => warnNoAsyncMessageResponse(action);
-                const doneCallback = meta.async ? done : warnArgumentUsage;
-                const errorCallback = meta.async ? error : warnArgumentUsage;
-                const listeners = Object.values(eventListeners[type]);
-                listeners.forEach((listener) => listener(action, doneCallback, errorCallback));
-            }
-        }
-    };
-    let bridge = {};
-    const listenMiddleware = (() => (next) => (action) => {
-        listeners.forEach((listener) => {
-            listener(action);
-        });
-        return next(action);
-    });
-    const chain = [listenMiddleware, ...middlewares].map((middleware) => middleware(bridge));
-    const wrappedDispatch = compose(...chain)(internalDispatch);
-    const localRequestDispatch = ((action) => {
-        var _a;
-        const { type, payload = {} } = action;
-        const id = uuid();
-        const meta = Object.assign(Object.assign({}, ((_a = action.meta) !== null && _a !== void 0 ? _a : {})), { external: false, type: ActionMetaType.REQUEST });
-        return wrappedDispatch({ id, type, payload, meta });
-    });
-    const localResponseDispatch = ((action) => {
-        const { type, payload = {}, meta = {} } = action;
-        const id = uuid();
-        return wrappedDispatch({
-            id,
-            type,
-            payload,
-            meta: Object.assign(Object.assign({}, meta), { external: false, type: ActionMetaType.RESPONSE }),
-        });
-    });
-    const localRequestDispatchAsync = ((action) => {
-        var _a;
-        return localRequestDispatch(Object.assign(Object.assign({}, action), { meta: Object.assign(Object.assign({}, ((_a = action.meta) !== null && _a !== void 0 ? _a : {})), { async: true }) }));
-    });
-    const externalDispatch = ((action) => {
-        var _a;
-        return wrappedDispatch(Object.assign(Object.assign({}, action), { meta: Object.assign(Object.assign({}, ((_a = action.meta) !== null && _a !== void 0 ? _a : {})), { external: true }) }));
-    });
-    const onMessage = ((message) => {
-        try {
-            const action = typeof message === 'string' ? JSON.parse(message) : message;
-            externalDispatch(action);
-        }
-        catch (error) {
-            throw error;
-        }
-    });
-    const setPostMessage = (nextPostMessage) => {
-        postMessage = nextPostMessage;
-    };
-    const sync = (timeout = 5000) => __awaiter(void 0, void 0, void 0, function* () {
-        const version = yield Promise.race([
-            (() => __awaiter(void 0, void 0, void 0, function* () {
-                const { version } = yield bridge.dispatchAsync({
-                    type: SYNC_MESSAGE,
-                    payload: { version: bridge.version },
-                });
-                return version;
-            }))(),
-            new Promise((resolve) => {
-                setTimeout(() => resolve(false), timeout);
-            }),
-        ]);
-        if (version === false) {
-            throw new Error('Error: AsyncBridge.sync timeout. AsyncBridge was not able to receive response from the other side.');
-        }
-        return {
-            version: bridge.version,
-            otherSideVersion: version,
-        };
-    });
-    listenEvent(SYNC_MESSAGE, ({ payload }, done) => {
-        done({ payload: { version: bridge.version } });
-    });
-    bridge = {
-        version,
-        sync,
-        dispatch: localRequestDispatch,
-        dispatchAsync: localRequestDispatchAsync,
-        setPostMessage,
-        subscribe,
-        onMessage,
-        listenEvent,
-    };
-    return bridge;
-};
-const asyncMiddleware = (() => {
-    const awaitMap = {};
-    return (next) => (action) => {
-        var _a, _b, _c, _d, _e, _f;
-        // returning promise for async request action
-        if (((_a = action === null || action === void 0 ? void 0 : action.meta) === null || _a === void 0 ? void 0 : _a.async) && ((_b = action === null || action === void 0 ? void 0 : action.meta) === null || _b === void 0 ? void 0 : _b.type) === ActionMetaType.REQUEST && !((_c = action === null || action === void 0 ? void 0 : action.meta) === null || _c === void 0 ? void 0 : _c.external)) {
-            const id = action === null || action === void 0 ? void 0 : action.id;
-            return new Promise((resolve, reject) => {
-                awaitMap[id] = {
-                    resolve: (payload) => {
-                        resolve(payload);
-                        delete awaitMap[id];
-                    },
-                    reject: (error) => {
-                        reject(error);
-                        delete awaitMap[id];
-                    },
-                };
-                next(action);
-            });
-            // solving promise in case if received response action with same id
-        }
-        else if (((_d = action === null || action === void 0 ? void 0 : action.meta) === null || _d === void 0 ? void 0 : _d.type) === ActionMetaType.RESPONSE && ((_e = action === null || action === void 0 ? void 0 : action.meta) === null || _e === void 0 ? void 0 : _e.external)) {
-            const id = (_f = action === null || action === void 0 ? void 0 : action.meta) === null || _f === void 0 ? void 0 : _f.id;
-            if (awaitMap[id]) {
-                if (!action.meta.error) {
-                    awaitMap[id].resolve(action.payload);
-                }
-                else {
-                    awaitMap[id].reject(action.payload);
-                }
-            }
-            else {
-                return next(action);
-            }
-        }
-        else {
-            return next(action);
-        }
-    };
-});
-function createAsyncBridge(options = {}, middlewares = []) {
-    return createBridge(options, [asyncMiddleware, ...middlewares]);
+function H(s = {}, n = []) {
+  return $(s, [U, ...n]);
 }
-
-exports.compose = compose;
-exports.createAsyncBridge = createAsyncBridge;
+export {
+  G as compose,
+  H as createAsyncBridge
+};
+//# sourceMappingURL=index.js.map
